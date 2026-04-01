@@ -1,34 +1,72 @@
-# student_dropout_prediction
-This project predicts the dropout risk of students using an AI model.
+# AI Student Dropout Risk Predictor
 
-The system analyzes:
+A machine learning web application that predicts student dropout risk based on academic performance indicators.
 
-Attendance
+## Features
+- Predicts **Low Risk** or **High Risk** of dropout
+- Shows exact dropout probability score
+- Clean, responsive web interface
+- Trained on 10,000 synthetic student records
+- **84.4% model accuracy**
 
-Study Hours
+## Input Parameters
+| Parameter | Description |
+|---|---|
+| Attendance (%) | Student's class attendance percentage |
+| Study Hours/Day | Average daily study hours |
+| Assignment Completion (%) | Percentage of assignments submitted |
+| GPA (4–10) | Grade Point Average |
+| Classroom Interaction (1–10) | Level of class participation |
 
-Assignment Completion
+## Tech Stack
+- **ML Model**: Logistic Regression (scikit-learn)
+- **Backend**: Flask (Python)
+- **Frontend**: HTML, CSS, JavaScript
+- **Deployment**: Render
 
-GPA
+## How to Run Locally
 
-Class Participation
+1. Clone the repository:
+```bash
+git clone https://github.com/riyankacodes/student_dropout_prediction
+cd student_dropout_prediction
+```
 
-Based on these inputs the system predicts:
-
-LOW RISK
-
-HIGH RISK
-
-Technologies Used
-
-Python
-
-How to Run the Project
-
-Install dependencies:
-
+2. Install dependencies:
+```bash
 pip install -r requirements.txt
+```
 
-Dataset
+3. Train the model (generates model.pkl):
+```bash
+python train_model.py
+```
 
-The model was trained on a dataset of 10,000 student records.
+4. Run the Flask app:
+```bash
+python app.py
+```
+
+5. Open browser at: `http://localhost:5000`
+
+## Project Structure
+```
+student_dropout_prediction/
+├── app.py                  # Flask backend
+├── train_model.py          # Model training script
+├── model.pkl               # Trained ML model
+├── requirements.txt        # Python dependencies
+├── Procfile                # For Render deployment
+├── templates/
+│   └── index.html          # Frontend web page
+└── README.md
+```
+
+## Team
+- Baishali Mishra (24215603)
+- Riyanka Bhattacharyya (24215609)
+- Sejal Pandey (24215610)
+- Sritirupa Dey (24215612)
+
+**Institution**: Christ (Deemed to be University), Delhi NCR  
+**Course**: Intel Unnati Generative AI · 2026

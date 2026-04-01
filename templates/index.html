@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Student Dropout Risk Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0f2d1f 100%);
+      padding: 4rem 2rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.15) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(74,222,128,0.1) 0%, transparent 50%);
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #7dd3fc;
+      font-size: 11px;
+      padding: 6px 18px;
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+      font-family: 'Syne', sans-serif;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: #4ade80; }
+    .hero p { color: #94a3b8; font-size: 1.05rem; line-height: 1.7; max-width: 500px; margin: 0 auto 2.5rem; }
+    .stats-row { display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-num { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: #4ade80; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+    /* MAIN LAYOUT */
+    .main { max-width: 860px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; z-index: 2; }
+
+    /* RESULT BOX */
+    .result-box {
+      display: none;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      border: 2px solid;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .result-box.low  { background: #f0fdf4; border-color: #22c55e; }
+    .result-box.high { background: #fff1f2; border-color: #ef4444; }
+    .result-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+    .result-title { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .result-box.low  .result-title { color: #15803d; }
+    .result-box.high .result-title { color: #dc2626; }
+    .result-sub { color: #64748b; margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .prob-wrap { max-width: 320px; margin: 0 auto 0.5rem; }
+    .prob-track { background: #e2e8f0; border-radius: 100px; height: 10px; overflow: hidden; }
+    .prob-fill  { height: 100%; border-radius: 100px; transition: width 1s ease; width: 0%; }
+    .prob-label { font-size: 13px; color: #64748b; margin-top: 6px; margin-bottom: 1.5rem; }
+    .factors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; text-align: left; margin-top: 1rem; }
+    .factor-card { background: #fff; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; }
+    .factor-name { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .factor-val  { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+    .factor-bar  { height: 4px; background: #e2e8f0; border-radius: 4px; margin-top: 8px; }
+    .factor-fill-bar { height: 100%; border-radius: 4px; transition: width 0.8s 0.3s ease; width: 0%; }
+
+    /* CARD */
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.8rem; }
+    .card-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .icon-blue  { background: #dbeafe; }
+    .icon-green { background: #dcfce7; }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: #1e293b; }
+
+    /* FORM */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem 2rem; }
+    @media (max-width: 580px) { .grid-2 { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 0.5rem; }
+    .field-label { font-size: 13px; font-weight: 500; color: #475569; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .field-label .val { font-family: 'Syne', sans-serif; font-weight: 700; color: #2563eb; font-size: 14px; }
+    input[type="range"] { width: 100%; accent-color: #2563eb; cursor: pointer; }
+    .range-ticks { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 3px; margin-bottom: 1rem; }
+
+    .predict-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #1d4ed8, #0284c7);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      margin-top: 1rem;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .predict-btn:hover  { opacity: 0.9; transform: translateY(-1px); }
+    .predict-btn:active { transform: scale(0.99); }
+    .predict-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .tip {
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #1e40af;
+      margin-top: 1rem;
+      line-height: 1.6;
+    }
+
+    /* HOW IT WORKS */
+    .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+    .how-step { text-align: center; padding: 1.2rem 0.8rem; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1d4ed8; color: #fff;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 0.75rem;
+    }
+    .step-title { font-weight: 500; font-size: 14px; color: #1e293b; margin-bottom: 6px; }
+    .step-desc  { font-size: 12px; color: #64748b; line-height: 1.5; }
+
+    /* TECH */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+    .chip { padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 500; border: 1px solid; }
+    .chip-blue   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .chip-green  { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+    .chip-amber  { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+
+    .team-line { margin-top: 1.2rem; font-size: 13px; color: #64748b; line-height: 1.7; }
+    .team-line strong { color: #1e293b; }
+
+    .error-msg { background: #fff1f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 12px 16px; color: #dc2626; font-size: 13px; margin-top: 0.8rem; display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="badge">Intel Unnati — Generative AI Project</div>
+    <h1>AI Student Dropout<br><span>Risk Predictor</span></h1>
+    <p>Enter a student's academic details to instantly predict their dropout risk using our trained machine learning model.</p>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">10K</div><div class="stat-label">Training Records</div></div>
+      <div class="stat"><div class="stat-num">84.4%</div><div class="stat-label">Model Accuracy</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">Input Features</div></div>
+      <div class="stat"><div class="stat-num">2</div><div class="stat-label">Risk Categories</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- RESULT -->
+  <div id="resultBox" class="result-box">
+    <div class="result-emoji" id="resultEmoji"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-sub"   id="resultSub"></div>
+    <div class="prob-wrap">
+      <div class="prob-track"><div class="prob-fill" id="probFill"></div></div>
+      <div class="prob-label" id="probLabel"></div>
+    </div>
+    <div class="factors-grid" id="factorsGrid"></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-blue">📋</div>
+      <div class="card-title">Enter student details</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <div class="field-label">Attendance <span class="val" id="attVal">75%</span></div>
+        <input type="range" min="0" max="100" value="75" id="attendance"
+               oninput="document.getElementById('attVal').textContent=this.value+'%'">
+        <div class="range-ticks"><span>0%</span><span>50%</span><span>100%</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">Study Hours / Day <span class="val" id="studyVal">4 hrs</span></div>
+        <input type="range" min="0" max="10" value="4" id="study_hours"
+               oninput="document.getElementById('studyVal').textContent=this.value+' hrs'">
+        <div class="range-ticks"><span>0</span><span>5</span><span>10</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">Assignment Completion <span class="val" id="assignVal">70%</span></div>
+        <input type="range" min="0" max="100" value="70" id="assignment_completion"
+               oninput="document.getElementById('assignVal').textContent=this.value+'%'">
+        <div class="range-ticks"><span>0%</span><span>50%</span><span>100%</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">GPA (out of 10) <span class="val" id="gpaVal">6.5</span></div>
+        <input type="range" min="4" max="10" step="0.1" value="6.5" id="gpa"
+               oninput="document.getElementById('gpaVal').textContent=parseFloat(this.value).toFixed(1)">
+        <div class="range-ticks"><span>4.0</span><span>7.0</span><span>10.0</span></div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:0.5rem">
+      <div class="field-label">Classroom Interaction <span class="val" id="classVal">5 / 10</span></div>
+      <input type="range" min="1" max="10" value="5" id="classroom_interaction"
+             oninput="document.getElementById('classVal').textContent=this.value+' / 10'">
+      <div class="range-ticks"><span>1 — Very Low</span><span>5 — Average</span><span>10 — Very High</span></div>
+    </div>
+
+    <button class="predict-btn" id="predictBtn" onclick="predict()">Predict Dropout Risk</button>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="tip">💡 Try: attendance below 60%, study hours below 3, GPA below 6 → High Risk prediction.</div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-green">⚙️</div>
+      <div class="card-title">How it works</div>
+    </div>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <div class="step-title">Enter Data</div>
+        <div class="step-desc">Teacher enters 5 academic parameters for the student</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <div class="step-title">Send to Server</div>
+        <div class="step-desc">Data is sent to the Flask backend via a POST request</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <div class="step-title">ML Prediction</div>
+        <div class="step-desc">Logistic Regression model trained on 10,000 records runs the prediction</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">4</div>
+        <div class="step-title">Display Result</div>
+        <div class="step-desc">Low Risk or High Risk shown with dropout probability score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNOLOGIES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-blue">🛠️</div>
+      <div class="card-title">Technologies used</div>
+    </div>
+    <div class="chips">
+      <span class="chip chip-blue">Python</span>
+      <span class="chip chip-blue">Scikit-learn</span>
+      <span class="chip chip-blue">Logistic Regression</span>
+      <span class="chip chip-green">Flask</span>
+      <span class="chip chip-green">HTML / CSS / JS</span>
+      <span class="chip chip-amber">Pandas</span>
+      <span class="chip chip-amber">NumPy</span>
+      <span class="chip chip-amber">Render (Cloud Deployment)</span>
+    </div>
+    <div class="team-line">
+      Built as part of the <strong>Intel Unnati Generative AI</strong> course —
+      Christ (Deemed to be University), Delhi NCR · 2026<br>
+      Team: <strong>Baishali Mishra</strong> · <strong>Riyanka Bhattacharyya</strong> · <strong>Sejal Pandey</strong> · <strong>Sritirupa Dey</strong>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  async function predict() {
+    const btn = document.getElementById('predictBtn');
+    const errMsg = document.getElementById('errorMsg');
+    errMsg.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Predicting...';
+
+    const payload = {
+      attendance:              parseFloat(document.getElementById('attendance').value),
+      study_hours:             parseFloat(document.getElementById('study_hours').value),
+      gpa:                     parseFloat(document.getElementById('gpa').value),
+      classroom_interaction:   parseFloat(document.getElementById('classroom_interaction').value),
+      assignment_completion:   parseFloat(document.getElementById('assignment_completion').value)
+    };
+
+    try {
+      const res  = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      const isHigh = data.prediction === 1;
+      const box    = document.getElementById('resultBox');
+      box.className = 'result-box ' + (isHigh ? 'high' : 'low');
+      box.style.display = 'block';
+
+      document.getElementById('resultEmoji').textContent = isHigh ? '⚠️' : '✅';
+      document.getElementById('resultTitle').textContent = data.risk_label;
+      document.getElementById('resultSub').textContent   = isHigh
+        ? 'This student needs immediate attention and academic intervention.'
+        : 'This student is performing well and is unlikely to drop out.';
+
+      const fill = document.getElementById('probFill');
+      fill.style.width      = '0%';
+      fill.style.background = isHigh ? '#ef4444' : '#22c55e';
+      setTimeout(() => fill.style.width = data.probability_percent + '%', 100);
+      document.getElementById('probLabel').textContent = 'Dropout Probability: ' + data.probability_percent + '%';
+
+      const features = [
+        { name: 'Attendance',    val: payload.attendance + '%',                         pct: payload.attendance,                   color: payload.attendance < 60    ? '#ef4444' : payload.attendance < 75    ? '#f59e0b' : '#22c55e' },
+        { name: 'Study Hours',   val: payload.study_hours + ' hrs',                     pct: payload.study_hours * 10,             color: payload.study_hours < 3    ? '#ef4444' : payload.study_hours < 5    ? '#f59e0b' : '#22c55e' },
+        { name: 'Assignments',   val: payload.assignment_completion + '%',              pct: payload.assignment_completion,        color: payload.assignment_completion < 60 ? '#ef4444' : payload.assignment_completion < 75 ? '#f59e0b' : '#22c55e' },
+        { name: 'GPA',           val: payload.gpa.toFixed(1) + ' / 10',               pct: (payload.gpa - 4) / 6 * 100,          color: payload.gpa < 6            ? '#ef4444' : payload.gpa < 7            ? '#f59e0b' : '#22c55e' },
+        { name: 'Class Interact',val: payload.classroom_interaction + ' / 10',         pct: payload.classroom_interaction * 10,   color: payload.classroom_interaction < 3 ? '#ef4444' : payload.classroom_interaction < 5 ? '#f59e0b' : '#22c55e' }
+      ];
+
+      document.getElementById('factorsGrid').innerHTML = features.map(f => `
+        <div class="factor-card">
+          <div class="factor-name">${f.name}</div>
+          <div class="factor-val">${f.val}</div>
+          <div class="factor-bar">
+            <div class="factor-fill-bar" style="width:${Math.round(f.pct)}%;background:${f.color}"></div>
+          </div>
+        </div>`).join('');
+
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      errMsg.textContent  = 'Error: ' + err.message;
+      errMsg.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Predict Dropout Risk';
+    }
+  }
+</script>
+
+</body>
+</html>
