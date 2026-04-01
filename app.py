@@ -2,11 +2,64 @@ from flask import Flask, request, jsonify, render_template
 import pickle
 import numpy as np
 import pandas as pd
+import os
 
 app = Flask(__name__)
 
-with open('model.pkl', 'rb') as f:
-    model = pickle.load(f)
+def train_and_save_model():
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import train_test_split
+
+    np.random.seed(42)
+    n = 10000
+    attendance = np.random.randint(40, 100, n)
+    study_hours = np.random.randint(1, 10, n)
+    gpa = np.random.uniform(4, 10, n)
+    classroom_interaction = np.random.randint(1, 10, n)
+    assignment_completion = np.random.randint(40, 100, n)
+
+    dropout_prob = (
+        0.30 * (attendance < 60) +
+        0.25 * (study_hours < 3) +
+        0.25 * (gpa < 6) +
+        0.20 * (assignment_completion < 60)
+    )
+    dropout_prob = dropout_prob + np.random.normal(0, 0.1, n)
+    dropout = (dropout_prob > 0.5).astype(int)
+
+    df = pd.DataFrame({
+        'attendance': attendance,
+        'study_hours': study_hours,
+        'gpa': gpa,
+        'classroom_interaction': classroom_interaction,
+        'assignment_completion': assignment_completion,
+        'dropout': dropout
+    })
+
+    X = df.drop('dropout', axis=1)
+    y = df['dropout']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
+    print("Model trained and saved successfully.")
+    return model
+
+if os.path.exists('model.pkl'):
+    try:
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        print("Model loaded from model.pkl")
+    except Exception as e:
+        print(f"Could not load model.pkl, retraining... ({e})")
+        model = train_and_save_model()
+else:
+    print("model.pkl not found, training now...")
+    model = train_and_save_model()
 
 @app.route('/')
 def home():
